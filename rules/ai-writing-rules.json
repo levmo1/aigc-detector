@@ -1,0 +1,228 @@
+{
+  "version": 2,
+  "description": "中文 AI 写作特征规则库。来源：本机 humanizer-zh-academic skill（真实论文改写实验验证）、马良写作 AI 味检测（40+ 高频词/句式）、Wikipedia Signs of AI writing（重要性吹捧、否定式对仗、浅层分析、三连结构、标点痕迹等模式，已转译中文对应）。每条规则是“写作特征观察”，不构成作者身份判定。",
+  "thresholds": {
+    "segmentAIScore": 3,
+    "segmentUncertainScore": 1
+  },
+  "groups": [
+    {
+      "id": "summary-catchphrase",
+      "name": "总结套话",
+      "weight": 3,
+      "rules": [
+        { "pattern": "综上所述", "weight": 3, "note": "段落/全文收尾套话" },
+        { "pattern": "由此可见", "weight": 3, "note": "推论套话" },
+        { "pattern": "不难发现", "weight": 2, "note": "结论引导" },
+        { "pattern": "可以看出", "weight": 2, "note": "结论引导" },
+        { "pattern": "因此可以得出结论", "weight": 3, "note": "总结腔" },
+        { "pattern": "总而言之", "weight": 3, "note": "总结套话" },
+        { "pattern": "总的来说", "weight": 2, "note": "总结套话" },
+        { "pattern": "一言以蔽之", "weight": 2, "note": "总结腔" },
+        { "pattern": "综上所述，本研究", "weight": 4, "note": "论文结尾模板句式" }
+      ]
+    },
+    {
+      "id": "fillers",
+      "name": "填充短语",
+      "weight": 2,
+      "rules": [
+        { "pattern": "值得注意的是", "weight": 2, "note": "冗余引导语" },
+        { "pattern": "需要指出的是", "weight": 2, "note": "冗余引导语" },
+        { "pattern": "值得一提的是", "weight": 2, "note": "冗余引导语" },
+        { "pattern": "不可忽视的是", "weight": 2, "note": "冗余引导语" },
+        { "pattern": "显而易见", "weight": 1, "note": "强调填充" },
+        { "pattern": "众所周知", "weight": 1, "note": "常识引用腔" },
+        { "pattern": "可以说", "weight": 1, "note": "模糊修饰" },
+        { "pattern": "从某种角度来说", "weight": 1, "note": "模糊限定" }
+      ]
+    },
+    {
+      "id": "connectors",
+      "name": "高频连接词",
+      "weight": 2,
+      "rules": [
+        { "pattern": "然而", "weight": 1, "note": "AI 高频转折" },
+        { "pattern": "与此同时", "weight": 2, "note": "AI 高频并列" },
+        { "pattern": "此外", "weight": 1, "note": "AI 高频递进" },
+        { "pattern": "更重要的是", "weight": 2, "note": "AI 高频递进" },
+        { "pattern": "值得注意的是", "weight": 2, "note": "AI 高频引导" },
+        { "pattern": "不仅……而且", "weight": 1, "note": "对仗连接" },
+        { "pattern": "一方面……另一方面", "weight": 2, "note": "二元结构模板" },
+        { "pattern": "在……的背景下", "weight": 1, "note": "背景铺垫模板" },
+        { "pattern": "随着……的发展", "weight": 1, "note": "开头模板" },
+        { "pattern": "与此同时，", "weight": 2, "note": "句首并列模板" }
+      ]
+    },
+    {
+      "id": "vague-attribution",
+      "name": "模糊归因",
+      "weight": 3,
+      "rules": [
+        { "pattern": "专家认为", "weight": 2, "note": "无来源归因" },
+        { "pattern": "研究表明", "weight": 2, "note": "无来源归因" },
+        { "pattern": "业内普遍认为", "weight": 2, "note": "无来源归因" },
+        { "pattern": "有观点认为", "weight": 2, "note": "无来源归因" },
+        { "pattern": "一些学者指出", "weight": 2, "note": "无来源归因" },
+        { "pattern": "相关研究显示", "weight": 2, "note": "无来源归因" },
+        { "pattern": "数据显示", "weight": 1, "note": "无具体数据归因" }
+      ]
+    },
+    {
+      "id": "theory-framing",
+      "name": "理论框架腔",
+      "weight": 2,
+      "rules": [
+        { "pattern": "基于.*理论", "weight": 2, "note": "理论依据式起笔" },
+        { "pattern": "依据.*框架", "weight": 2, "note": "框架式起笔" },
+        { "pattern": "根据.*视角", "weight": 2, "note": "视角式起笔" },
+        { "pattern": "按照.*观点", "weight": 1, "note": "观点引用腔" },
+        { "pattern": "遵循.*原则", "weight": 1, "note": "原则引用腔" },
+        { "pattern": "从.*维度来看", "weight": 2, "note": "维度分析模板" }
+      ]
+    },
+    {
+      "id": "positive-conclusion",
+      "name": "通用积极结论",
+      "weight": 3,
+      "rules": [
+        { "pattern": "未来可期", "weight": 2, "note": "空泛展望" },
+        { "pattern": "前景广阔", "weight": 2, "note": "空泛展望" },
+        { "pattern": "具有重要意义", "weight": 2, "note": "空洞意义声明" },
+        { "pattern": "意义深远", "weight": 2, "note": "空洞意义声明" },
+        { "pattern": "为……提供了新思路", "weight": 2, "note": "贡献模板" },
+        { "pattern": "开辟了新方向", "weight": 2, "note": "贡献模板" },
+        { "pattern": "具有广阔的发展空间", "weight": 2, "note": "空泛展望" }
+      ]
+    },
+    {
+      "id": "ai-words",
+      "name": "AI 高频词汇",
+      "weight": 2,
+      "rules": [
+        { "pattern": "深刻揭示了", "weight": 3, "note": "AI 高频动词短语" },
+        { "pattern": "综合运用", "weight": 2, "note": "AI 高频动词短语" },
+        { "pattern": "不可或缺", "weight": 2, "note": "AI 高频形容词" },
+        { "pattern": "深入探讨", "weight": 1, "note": "AI 高频动词" },
+        { "pattern": "系统梳理", "weight": 2, "note": "AI 高频动词" },
+        { "pattern": "提供了理论支撑", "weight": 2, "note": "AI 高频短语" },
+        { "pattern": "有效解决了", "weight": 2, "note": "AI 高频动词" },
+        { "pattern": "充分说明", "weight": 1, "note": "AI 高频动词" },
+        { "pattern": "进一步", "weight": 1, "note": "AI 高频副词" },
+        { "pattern": "全面剖析", "weight": 2, "note": "AI 高频动词" },
+        { "pattern": "深入剖析", "weight": 2, "note": "AI 高频动词" },
+        { "pattern": "多维度", "weight": 2, "note": "AI 高频量化词" },
+        { "pattern": "全方位", "weight": 2, "note": "AI 高频量化词" }
+      ]
+    },
+    {
+      "id": "copula-stacking",
+      "name": "系动词堆叠",
+      "weight": 2,
+      "rules": [
+        { "pattern": "作为……的重要载体", "weight": 2, "note": "名词化套话" },
+        { "pattern": "扮演着……的角色", "weight": 2, "note": "名词化套话" },
+        { "pattern": "充当着……的功能", "weight": 2, "note": "名词化套话" },
+        { "pattern": "起到了……的作用", "weight": 2, "note": "名词化套话" },
+        { "pattern": "发挥着重要作用", "weight": 2, "note": "名词化套话" }
+      ]
+    },
+    {
+      "id": "case-proof",
+      "name": "案例印证套路",
+      "weight": 3,
+      "rules": [
+        { "pattern": "此案例印证了", "weight": 3, "note": "案例结论模板" },
+        { "pattern": "此案例揭示了", "weight": 3, "note": "案例结论模板" },
+        { "pattern": "此案例挑战了", "weight": 3, "note": "案例结论模板" },
+        { "pattern": "这提示我们", "weight": 2, "note": "案例引申模板" }
+      ]
+    },
+    {
+      "id": "enumeration",
+      "name": "编号逻辑结构",
+      "weight": 3,
+      "rules": [
+        { "pattern": "首先.{0,20}其次.{0,20}再次", "weight": 3, "note": "首先/其次/再次三段论" },
+        { "pattern": "第一.{0,20}第二.{0,20}第三", "weight": 2, "note": "第一/第二/第三编号" },
+        { "pattern": "从.{0,4}角度.{0,40}从.{0,4}角度", "weight": 2, "note": "多角度并列模板" },
+        { "pattern": "基于.{0,10}考量.{0,20}首先", "weight": 3, "note": "N 重考量模板" }
+      ]
+    },
+    {
+      "id": "parallel-structure",
+      "name": "过度对仗排比",
+      "weight": 3,
+      "rules": [
+        { "pattern": "([^，。；]{4,10}，){3}[^，。；]{4,10}。", "weight": 3, "note": "连续 4 段等长逗号分句（排比痕迹）" },
+        { "pattern": "突破了.{0,8}填补了.{0,8}创新了.{0,8}丰富了", "weight": 3, "note": "四连动词排比" }
+      ]
+    },
+    {
+      "id": "punctuation",
+      "name": "标点痕迹",
+      "weight": 1,
+      "rules": [
+        { "pattern": "——", "weight": 1, "note": "破折号密度（AI 高频替代逗号）" },
+        { "pattern": "——.{0,30}——", "weight": 2, "note": "一段内双破折号插入语（AI 高频结构）" }
+      ]
+    },
+    {
+      "id": "significance-puffery",
+      "name": "重要性吹捧",
+      "weight": 3,
+      "rules": [
+        { "pattern": "标志着.{0,12}重要转折", "weight": 3, "note": "Wikipedia 模式：milestone/shift 的中文对应" },
+        { "pattern": "具有里程碑意义", "weight": 3, "note": "Wikipedia 模式：pivotal moment" },
+        { "pattern": "为.{0,15}奠定了坚实基础", "weight": 2, "note": "Wikipedia 模式：setting the stage for" },
+        { "pattern": "彰显了.{0,15}重要性", "weight": 2, "note": "Wikipedia 模式：underscores its importance" },
+        { "pattern": "深深植根于", "weight": 2, "note": "Wikipedia 模式：deeply rooted" },
+        { "pattern": "见证.{0,10}发展历程", "weight": 2, "note": "Wikipedia 模式：a testament to" },
+        { "pattern": "开启了.{0,12}新篇章", "weight": 2, "note": "空泛意义声明" },
+        { "pattern": "注入新活力", "weight": 2, "note": "空泛积极声明" },
+        { "pattern": "在.{0,12}中扮演.{0,12}角色", "weight": 2, "note": "重要性定位模板" },
+        { "pattern": "是.{0,20}的重要里程碑", "weight": 2, "note": "里程碑模板" }
+      ]
+    },
+    {
+      "id": "negative-parallel",
+      "name": "否定式对仗",
+      "weight": 2,
+      "rules": [
+        { "pattern": "不仅是.{0,20}更是.{0,20}", "weight": 2, "note": "Wikipedia 模式：Not just X, but also Y" },
+        { "pattern": "不只是.{0,20}而是.{0,20}", "weight": 2, "note": "Wikipedia 模式：Not X, but Y" },
+        { "pattern": "与其说.{0,20}不如说", "weight": 2, "note": "Wikipedia 模式：X rather than Y" },
+        { "pattern": "不仅.{0,15}还.{0,15}", "weight": 1, "note": "并列递进模板" },
+        { "pattern": "不限于.{0,20}更是", "weight": 2, "note": "递进强调模板" }
+      ]
+    },
+    {
+      "id": "superficial-analysis",
+      "name": "浅层分析句",
+      "weight": 2,
+      "rules": [
+        { "pattern": "突出强调了", "weight": 2, "note": "Wikipedia 模式：highlighting/emphasizing" },
+        { "pattern": "彰显了.{0,12}意义", "weight": 2, "note": "Wikipedia 模式：underscoring its significance" },
+        { "pattern": "体现了.{0,15}价值", "weight": 1, "note": "意义附加句" },
+        { "pattern": "凸显了", "weight": 1, "note": "浅层分析动词" },
+        { "pattern": "展现了.{0,15}魅力", "weight": 1, "note": "浅层分析动词" },
+        { "pattern": "反映了.{0,15}趋势", "weight": 1, "note": "Wikipedia 模式：reflecting broader trends" },
+        { "pattern": "共同塑造了", "weight": 2, "note": "Wikipedia 模式：shaping broader discussions" },
+        { "pattern": "为.{0,15}注入了", "weight": 1, "note": "意义附加句" },
+        { "pattern": "有力证明了", "weight": 1, "note": "浅层结论动词" },
+        { "pattern": "充分体现了", "weight": 1, "note": "浅层结论动词" }
+      ]
+    },
+    {
+      "id": "attribution-emphasis",
+      "name": "媒体覆盖强调",
+      "weight": 2,
+      "rules": [
+        { "pattern": "独立媒体.{0,10}报道", "weight": 2, "note": "Wikipedia 模式：independent coverage" },
+        { "pattern": "多家.{0,6}媒体.{0,6}报道", "weight": 1, "note": "覆盖强调模板" },
+        { "pattern": "被.{0,12}广泛报道", "weight": 1, "note": "覆盖强调模板" },
+        { "pattern": "活跃.{0,6}社交媒体", "weight": 1, "note": "Wikipedia 模式：active social media presence" }
+      ]
+    }
+  ]
+}

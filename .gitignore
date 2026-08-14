@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-server/
+dist-app/
+release/
+coverage/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/binaries/*.exe
+
+# Runtime data (never commit)
+config/
+data/
+report/
+rules/user-rules.json
+chi_sim.traineddata
+
+# Tests
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Environment
+.env*
+!.env.example
+
+# Misc
+.next/
+out/
+.superpowers/
+.electron-builder-cache/
+.firecrawl/

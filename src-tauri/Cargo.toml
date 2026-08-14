@@ -1,0 +1,21 @@
+[package]
+name = "aigc-detector"
+version = "0.1.0"
+description = "中文论文 AIGC 检测"
+edition = "2021"
+
+[lib]
+name = "aigc_detector_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
