@@ -11,7 +11,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/your_username/aigc-detector">
+  <a href="https://github.com/levmo1/aigc-detector">
     <img src="assets/icon.png" alt="Logo" width="80" height="80">
   </a>
 
@@ -20,14 +20,14 @@
   <p align="center">
     An AI-writing-pattern observation tool for Chinese academic papers.
     <br />
-    <a href="https://github.com/your_username/aigc-detector"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/levmo1/aigc-detector"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/your_username/aigc-detector">View Demo</a>
+    <a href="https://github.com/levmo1/aigc-detector">View Demo</a>
     ·
-    <a href="https://github.com/your_username/aigc-detector/issues/new?labels=bug">Report Bug</a>
+    <a href="https://github.com/levmo1/aigc-detector/issues/new?labels=bug">Report Bug</a>
     ·
-    <a href="https://github.com/your_username/aigc-detector/issues/new?labels=enhancement">Request Feature</a>
+    <a href="https://github.com/levmo1/aigc-detector/issues/new?labels=enhancement">Request Feature</a>
   </p>
 </div>
 
@@ -99,7 +99,7 @@ Key highlights:
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/your_username/aigc-detector.git
+   git clone https://github.com/levmo1/aigc-detector.git
    ```
 2. Install NPM packages
    ```sh
@@ -175,7 +175,7 @@ rules/        default detection rules
 - [ ] More detection features / third-party detection providers
 - [ ] macOS / Linux desktop builds
 
-See the [open issues](https://github.com/your_username/aigc-detector/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/levmo1/aigc-detector/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -204,7 +204,7 @@ Private project — not open source. See `LICENSE.txt` for details if provided.
 <!-- CONTACT -->
 ## Contact
 
-Project Link: [https://github.com/your_username/aigc-detector](https://github.com/your_username/aigc-detector)
+Project Link: [https://github.com/levmo1/aigc-detector](https://github.com/levmo1/aigc-detector)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -219,14 +219,14 @@ Project Link: [https://github.com/your_username/aigc-detector](https://github.co
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/your_username/aigc-detector.svg?style=for-the-badge
-[contributors-url]: https://github.com/your_username/aigc-detector/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/your_username/aigc-detector.svg?style=for-the-badge
-[forks-url]: https://github.com/your_username/aigc-detector/network/members
-[stars-shield]: https://img.shields.io/github/stars/your_username/aigc-detector.svg?style=for-the-badge
-[stars-url]: https://github.com/your_username/aigc-detector/stargazers
-[issues-shield]: https://img.shields.io/github/issues/your_username/aigc-detector.svg?style=for-the-badge
-[issues-url]: https://github.com/your_username/aigc-detector/issues
+[contributors-shield]: https://img.shields.io/github/contributors/levmo1/aigc-detector.svg?style=for-the-badge
+[contributors-url]: https://github.com/levmo1/aigc-detector/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/levmo1/aigc-detector.svg?style=for-the-badge
+[forks-url]: https://github.com/levmo1/aigc-detector/network/members
+[stars-shield]: https://img.shields.io/github/stars/levmo1/aigc-detector.svg?style=for-the-badge
+[stars-url]: https://github.com/levmo1/aigc-detector/stargazers
+[issues-shield]: https://img.shields.io/github/issues/levmo1/aigc-detector.svg?style=for-the-badge
+[issues-url]: https://github.com/levmo1/aigc-detector/issues
 [React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
 [React-url]: https://reactjs.org/
 [Vite.js]: https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white
