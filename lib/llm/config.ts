@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -8,6 +9,12 @@ export interface LlmPreset {
   name: string
   baseUrl: string
   model: string
+}
+
+export interface CustomLlmPreset {
+  id: string
+  name: string
+  baseUrl: string
 }
 
 export const LLM_PRESETS: LlmPreset[] = [
@@ -23,12 +30,6 @@ export const LLM_PRESETS: LlmPreset[] = [
     baseUrl: 'https://opencode.ai/zen/go/v1',
     model: 'deepseek-v4-flash',
   },
-  {
-    id: 'custom',
-    name: '自定义方案',
-    baseUrl: '',
-    model: '',
-  },
 ]
 
 const OPENCODE_AUTH_PATH = 'opencode/auth.json'
@@ -40,28 +41,43 @@ const presetToProvider: Record<string, string> = {
 
 export const llmConfigSchema = z.object({
   enabled: z.boolean(),
+  // Kept optional for backward compatibility with configs created before the
+  // separate second-review switch was introduced.
+  secondReviewEnabled: z.boolean().optional(),
   presetId: z.string().optional(),
   baseUrl: z.string().url().max(300),
   apiKey: z.string().max(300).optional(),
   apiKeys: z.record(z.string(), z.string()).optional(),
+  customPresets: z.array(z.object({
+    id: z.string().regex(/^custom-[a-z0-9-]+$/u).max(80),
+    name: z.string().min(1).max(60),
+    baseUrl: z.string().url().max(300),
+  })).max(20).optional(),
   model: z.string().min(1).max(120),
   timeoutMs: z.number().int().min(1000).max(60_000).default(30_000),
-  maxSegments: z.number().int().min(1).max(200).default(15),
+  maxSegments: z.number().int().min(1).max(200).default(6),
 })
 
 export type LlmConfig = z.infer<typeof llmConfigSchema>
 
 export type LlmApiKeySource = 'opencode-auth' | 'user' | 'none'
 
+export const customPresetInputSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  baseUrl: z.string().url().max(300),
+})
+
 export const defaultLlmConfig: LlmConfig = {
   enabled: false,
+  secondReviewEnabled: false,
   presetId: 'deepseek',
   baseUrl: LLM_PRESETS[0].baseUrl,
   apiKey: '',
   apiKeys: {},
+  customPresets: [],
   model: LLM_PRESETS[0].model,
   timeoutMs: 30_000,
-  maxSegments: 15,
+  maxSegments: 6,
 }
 
 function configPath(): string {
@@ -96,7 +112,7 @@ function userKeyFor(parsed: LlmConfig, presetId: string | undefined): string {
   const keys = parsed.apiKeys ?? {}
   const id = presetId ?? ''
   if (keys[id]) return keys[id] ?? ''
-  return parsed.apiKey ?? ''
+  return id === parsed.presetId ? parsed.apiKey ?? '' : ''
 }
 
 export function llmApiKeySourceFor(config: LlmConfig, presetId: string | undefined): LlmApiKeySource {
@@ -109,18 +125,47 @@ export function llmApiKeySource(config: LlmConfig): LlmApiKeySource {
   return llmApiKeySourceFor(config, config.presetId)
 }
 
+export function apiKeyForPreset(config: LlmConfig, presetId: string | undefined): string {
+  return resolveProviderKey(presetId) || userKeyFor(config, presetId)
+}
+
+export function listLlmPresets(config: LlmConfig = loadLlmConfig()): LlmPreset[] {
+  return [
+    ...LLM_PRESETS,
+    ...(config.customPresets ?? []).map((preset) => ({
+      ...preset,
+      model: '',
+    })),
+  ]
+}
+
 export function loadLlmConfig(): LlmConfig {
   try {
     const raw = readFileSync(configPath(), 'utf8')
     const parsed = llmConfigSchema.parse(JSON.parse(raw))
+    const customPresets = parsed.customPresets ?? []
+    const presetExists = !parsed.presetId
+      || LLM_PRESETS.some((preset) => preset.id === parsed.presetId)
+      || customPresets.some((preset) => preset.id === parsed.presetId)
+    const normalized = presetExists
+      ? parsed
+      : {
+          ...parsed,
+          presetId: defaultLlmConfig.presetId,
+          baseUrl: defaultLlmConfig.baseUrl,
+          model: defaultLlmConfig.model,
+        }
     return {
-      ...parsed,
-      apiKey: resolveProviderKey(parsed.presetId) || userKeyFor(parsed, parsed.presetId),
+      ...normalized,
+      customPresets,
+      secondReviewEnabled: normalized.secondReviewEnabled ?? false,
+      apiKey: apiKeyForPreset(normalized, normalized.presetId),
     }
   } catch {
     return {
       ...defaultLlmConfig,
-      apiKey: resolveProviderKey(defaultLlmConfig.presetId) || '',
+      secondReviewEnabled: false,
+      apiKey: apiKeyForPreset(defaultLlmConfig, defaultLlmConfig.presetId),
     }
   }
 }
@@ -144,16 +189,45 @@ export function saveLlmConfig(config: LlmConfig, options: { resetApiKey?: boolea
     apiKeys[presetId] = parsed.apiKey
   }
 
-  const stored = { ...parsed, apiKeys, apiKey: undefined }
+  const customPresets = parsed.customPresets ?? existing.customPresets ?? []
+  const stored = { ...parsed, apiKeys, customPresets, apiKey: undefined }
   mkdirSync(path.dirname(configPath()), { recursive: true })
   writeFileSync(configPath(), `${JSON.stringify(stored, null, 2)}\n`, 'utf8')
 
   return {
     ...stored,
+    secondReviewEnabled: parsed.secondReviewEnabled ?? false,
     apiKey: resolveProviderKey(presetId) || apiKeys[presetId] || '',
   }
 }
 
+export function addCustomLlmPreset(input: z.infer<typeof customPresetInputSchema>): LlmPreset {
+  const current = loadLlmConfig()
+  const customPreset: CustomLlmPreset = {
+    id: `custom-${randomUUID()}`,
+    name: input.name,
+    baseUrl: input.baseUrl,
+  }
+  const saved = saveLlmConfig({
+    ...current,
+    apiKey: '',
+    customPresets: [...(current.customPresets ?? []), customPreset],
+  })
+  return listLlmPresets(saved).find((preset) => preset.id === customPreset.id) as LlmPreset
+}
+
+export function removeCustomLlmPreset(id: string): LlmConfig {
+  const current = loadLlmConfig()
+  const isActive = current.presetId === id
+  const fallback = LLM_PRESETS[0]
+  return saveLlmConfig({
+    ...current,
+    apiKey: '',
+    ...(isActive ? { presetId: fallback.id, baseUrl: fallback.baseUrl, model: fallback.model } : {}),
+    customPresets: (current.customPresets ?? []).filter((preset) => preset.id !== id),
+  })
+}
+
 export function presetById(id: string): LlmPreset | undefined {
-  return LLM_PRESETS.find((preset) => preset.id === id)
+  return listLlmPresets().find((preset) => preset.id === id)
 }

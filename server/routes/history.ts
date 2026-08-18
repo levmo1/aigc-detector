@@ -19,6 +19,7 @@ historyRoutes.get('/', async (c) => {
       sourceName: task.report?.sourceName ?? '未知来源',
       sourceType: task.report?.sourceType ?? 'text',
       mode: task.report?.mode ?? 'rule',
+      llmAssisted: task.report?.llmAssisted ?? false,
       summary: task.report?.summary ?? null,
       error: task.error ?? null,
       createdAt: task.createdAt,

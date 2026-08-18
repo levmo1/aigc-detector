@@ -146,7 +146,7 @@ function SegmentButton({
       className={`text-mark text-mark-${segment.label}${selectedId === segment.id ? ' is-selected' : ''}`}
       type="button"
       aria-label={`${labels[segment.label]}：${segment.text}`}
-      data-tip={`${labels[segment.label]} · 置信度 ${Math.round(segment.confidence * 100)}%`}
+      data-tip={`${labels[segment.label]} · 特征强度 ${Math.round(segment.confidence * 100)}%`}
       onClick={() => onSelect(segment)}
     >
       {segment.text}

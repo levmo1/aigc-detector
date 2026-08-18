@@ -83,6 +83,7 @@ describe('buildSuggestions', () => {
       score: 0,
       hits: [],
       featureScores: {},
+      ruleGroupCount: 0,
     }
     const suggestions = buildSuggestions(evaluation)
 

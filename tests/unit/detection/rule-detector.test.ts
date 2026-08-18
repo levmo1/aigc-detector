@@ -28,6 +28,14 @@ describe('RuleDetector', () => {
     expect(results[0].label).toBe('human')
   })
 
+  it('keeps a single common academic phrase as uncertain', async () => {
+    const detector = createRuleDetector()
+    const text = '研究表明，这一现象仍然需要结合具体样本和研究背景分析。'
+    const results = await detector.detect({ segments: [segment(text)] })
+
+    expect(results[0].label).toBe('uncertain')
+  })
+
   it('keeps results stable across repeated runs', async () => {
     const detector = createRuleDetector()
     const first = await detector.detect({ segments: [segment('综上所述，本文的结论是明确的。')] })

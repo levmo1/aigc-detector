@@ -45,4 +45,16 @@ describe('DetectorForm', () => {
     fireEvent.dragLeave(dropZone)
     expect(dropZone.classList.contains('is-dragging')).toBe(false)
   })
+
+  it('selects a file dropped onto the drop zone', async () => {
+    const user = userEvent.setup()
+    render(<DetectorForm onSubmitted={vi.fn()} />)
+    await user.click(screen.getByRole('tab', { name: '上传文件' }))
+
+    const file = new File(['%PDF-demo'], '拖入样例.pdf', { type: 'application/pdf' })
+    const dropZone = screen.getByLabelText('上传 Word 或 PDF').closest('label')!
+    fireEvent.drop(dropZone, { dataTransfer: { files: [file], items: [] } })
+
+    expect(screen.getByText('拖入样例.pdf')).toBeInTheDocument()
+  })
 })

@@ -3,7 +3,8 @@
   "description": "中文 AI 写作特征规则库。来源：本机 humanizer-zh-academic skill（真实论文改写实验验证）、马良写作 AI 味检测（40+ 高频词/句式）、Wikipedia Signs of AI writing（重要性吹捧、否定式对仗、浅层分析、三连结构、标点痕迹等模式，已转译中文对应）。每条规则是“写作特征观察”，不构成作者身份判定。",
   "thresholds": {
     "segmentAIScore": 3,
-    "segmentUncertainScore": 1
+    "segmentUncertainScore": 1,
+    "minimumAIRuleGroups": 2
   },
   "groups": [
     {

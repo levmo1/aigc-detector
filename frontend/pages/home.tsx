@@ -37,7 +37,6 @@ export default function HomePage() {
   const navigate = useNavigate()
   const [taskId, setTaskId] = useState<string | null>(null)
   const [processingError, setProcessingError] = useState<string | null>(null)
-  const [engineLabel, setEngineLabel] = useState('本地规则检测')
   const handleReady = useCallback((id: string) => {
     if (typeof window !== 'undefined') localStorage.setItem('recentTaskId', id)
     navigate(`/report/${id}`)
@@ -50,15 +49,6 @@ export default function HomePage() {
   const handleError = useCallback((message: string) => {
     setProcessingError(message)
     setTaskId(null)
-  }, [])
-
-  useEffect(() => {
-    void fetch(apiUrl('/api/status'))
-      .then((response) => response.json())
-      .then((body: { label?: string }) => {
-        if (body.label) setEngineLabel(body.label)
-      })
-      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -100,10 +90,6 @@ export default function HomePage() {
         </Link>
         <div className="topbar-right">
           <SiteNav />
-          <div className="topbar-note">
-            <span className="status-dot" aria-hidden="true" />
-            {engineLabel}
-          </div>
         </div>
       </header>
 

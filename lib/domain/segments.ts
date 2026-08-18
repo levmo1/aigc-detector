@@ -12,6 +12,12 @@ export interface TextSegment {
 export interface DetectedSegment extends TextSegment {
   label: SegmentLabel
   confidence: number
+  evidenceScore?: number
+  ruleGroupCount?: number
+  localLabel?: SegmentLabel
+  llmLabel?: SegmentLabel
+  llmConfidence?: number
+  llmReasons?: string[]
   reasons: string[]
   suggestions: string[]
 }

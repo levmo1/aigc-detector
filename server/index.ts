@@ -31,7 +31,10 @@ app.route('/api/status', statusRoutes)
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: '接口不存在。' } }, 404))
 app.onError((error, c) => c.json({ error: { code: 'INTERNAL', message: error.message } }, 500))
 
-const port = Number(process.argv[2] ?? 0) || 3210
+const requestedPort = Number(process.argv[2])
+const port = Number.isInteger(requestedPort) && requestedPort >= 0 && requestedPort <= 65_535
+  ? requestedPort
+  : 3210
 serve({ fetch: app.fetch, port, hostname: '127.0.0.1' }, (info) => {
   console.log(`AIGC-SERVER-READY ${info.port}`)
 })

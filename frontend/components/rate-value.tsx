@@ -22,7 +22,7 @@ export function RateValue({ value, duration = 600 }: RateValueProps) {
         setDisplay(value)
         return
       }
-      const progress = Math.min((now - start) / duration, 1)
+      const progress = Math.min(Math.max((now - start) / duration, 0), 1)
       const eased = 1 - Math.pow(1 - progress, 3)
       setDisplay(Math.round(from + (value - from) * eased))
       if (progress < 1) {

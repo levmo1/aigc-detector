@@ -11,6 +11,12 @@ export interface DetectionSummary {
 export interface DetectionReport {
   id: string
   mode: DetectorMode
+  /** True only when an external LLM successfully replaced at least one local judgement. */
+  llmAssisted?: boolean
+  llmModel?: string
+  llmReviewStatus?: 'disabled' | 'completed' | 'partial' | 'failed'
+  llmRequestedSegments?: number
+  llmReviewedSegments?: number
   sourceName: string
   sourceType: 'text' | 'docx' | 'pdf'
   text: string
@@ -82,6 +88,10 @@ export function buildReport(input: {
 }): DetectionReport {
   return {
     ...input,
+    llmAssisted: false,
+    llmReviewStatus: 'disabled',
+    llmRequestedSegments: 0,
+    llmReviewedSegments: 0,
     summary: buildSummary(input.segments),
     warnings: input.warnings ?? [],
     generatedAt: new Date().toISOString(),

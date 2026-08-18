@@ -56,6 +56,7 @@ describe('history API', () => {
     expect(response.status).toBe(200)
     expect(body.items.length).toBe(1)
     expect(body.items[0].sourceName).toBe('历史论文')
+    expect(body.items[0].llmAssisted).toBe(false)
     expect(body.maxCount).toBe(50)
   })
 

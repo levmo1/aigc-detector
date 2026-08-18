@@ -31,7 +31,7 @@ export async function renderDocxReport(report: DetectionReport): Promise<Buffer>
       children: [
         new Paragraph({ text: '中文论文 AIGC 检测报告', heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
         new Paragraph({ text: report.sourceName, heading: HeadingLevel.HEADING_1 }),
-        new Paragraph({ text: `${modeLabel(report.mode)} · 有效字符 ${report.summary.scoredCharacters}` }),
+        new Paragraph({ text: `${modeLabel(report.mode, report.llmAssisted)} · 有效字符 ${report.summary.scoredCharacters}` }),
         new Table({
           rows: [
             new TableRow({ children: [cell('AI 倾向'), cell(`${report.summary.aiRate}%`)] }),
@@ -47,7 +47,7 @@ export async function renderDocxReport(report: DetectionReport): Promise<Buffer>
         ...report.segments.filter((segment) => segment.scored !== false).flatMap((segment) => [
           new Paragraph({
             children: [
-              new TextRun({ text: `[${labels[segment.label]} ${Math.round(segment.confidence * 100)}%] `, bold: true, color: colors[segment.label] }),
+              new TextRun({ text: `[${labels[segment.label]} 特征强度 ${Math.round(segment.confidence * 100)}%] `, bold: true, color: colors[segment.label] }),
               new TextRun({ text: segment.text }),
             ],
           }),

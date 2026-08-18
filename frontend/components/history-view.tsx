@@ -9,6 +9,7 @@ interface HistoryItem {
   sourceName: string
   sourceType: string
   mode: string
+  llmAssisted?: boolean
   summary: { aiRate: number; humanRate: number; uncertainRate: number; scoredCharacters: number } | null
   error: { code: string; message: string } | null
   createdAt: number
@@ -118,7 +119,7 @@ export function HistoryView() {
                 <strong>{item.sourceName}</strong>
                 <span className="history-meta">
                   {new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(item.updatedAt)}
-                  {' · '}{item.sourceType.toUpperCase()}
+                  {' · '}{item.sourceType.toUpperCase()}{item.llmAssisted ? ' · LLM 复核' : ''}
                 </span>
               </div>
 
