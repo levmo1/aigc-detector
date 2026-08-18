@@ -18,9 +18,12 @@ export function renderHtmlReport(report: DetectionReport): string {
   const warnings = report.warnings.length > 0
     ? `<div class="warnings"><strong>解析提示</strong><span>${escapeHtml(report.warnings.join(' '))}</span></div>`
     : ''
+  const reviewNote = report.llmReviewStatus && report.llmReviewStatus !== 'disabled'
+    ? `<p class="note">单模型复核覆盖 ${report.llmReviewedSegments ?? 0}/${report.llmRequestedSegments ?? 0} 个片段；复核结果仅作为第二意见。</p>`
+    : ''
   const insights = report.segments.filter((segment) => segment.scored !== false).map((segment) => `
     <article class="insight insight-${segment.label}">
-      <strong>${escapeHtml(labels[segment.label])} · ${Math.round(segment.confidence * 100)}%</strong>
+      <strong>${escapeHtml(labels[segment.label])} · 特征强度 ${Math.round(segment.confidence * 100)}%</strong>
       <p>片段：${escapeHtml(segment.text)}</p>
       <p>语言特征：${escapeHtml(segment.reasons.join('；'))}</p>
       <p>修改方向：${escapeHtml(segment.suggestions.join('；'))}</p>
@@ -62,7 +65,7 @@ export function renderHtmlReport(report: DetectionReport): string {
       <div class="eyebrow">CHINESE TEXT LAB / READING REPORT</div>
       <h1>${escapeHtml(report.sourceName)}</h1>
       <div class="meta">生成时间：${escapeHtml(report.generatedAt)} · 有效字符：${report.summary.scoredCharacters.toLocaleString('zh-CN')}</div>
-      <div class="badge">${escapeHtml(modeLabel(report.mode))}</div>
+      <div class="badge">${escapeHtml(modeLabel(report.mode, report.llmAssisted))}</div>
     </header>
     <section class="rates">
       <div class="rate rate-ai"><span>AI 倾向</span><strong>${report.summary.aiRate}%</strong></div>
@@ -70,6 +73,7 @@ export function renderHtmlReport(report: DetectionReport): string {
       <div class="rate rate-uncertain"><span>不确定</span><strong>${report.summary.uncertainRate}%</strong></div>
     </section>
     <p class="note">三项比例按有效检测文本的片段覆盖比例统计，结果是语言线索，不是作者身份的绝对证明。</p>
+    ${reviewNote}
     ${warnings}
     <section class="document">${segments || escapeHtml(report.text)}</section>
     <section class="insights"><h2>片段说明</h2>${insights || '<p class="note">没有可展开的片段说明。</p>'}</section>
@@ -91,7 +95,7 @@ function renderAnnotatedText(report: DetectionReport): string {
       cursor = segment.end
       continue
     }
-    output += `<span class="segment segment-${segment.label}" title="${escapeHtml(labels[segment.label])} · ${Math.round(segment.confidence * 100)}%">${escapeHtml(report.text.slice(segment.start, segment.end))}</span>`
+    output += `<span class="segment segment-${segment.label}" title="${escapeHtml(labels[segment.label])} · 特征强度 ${Math.round(segment.confidence * 100)}%">${escapeHtml(report.text.slice(segment.start, segment.end))}</span>`
     cursor = segment.end
   }
 
@@ -107,8 +111,8 @@ export function escapeHtml(value: string): string {
     .replace(/'/gu, '&#039;')
 }
 
-export function modeLabel(mode: DetectionReport['mode']): string {
+export function modeLabel(mode: DetectionReport['mode'], llmAssisted = false): string {
   if (mode === 'mock') return 'Mock 演示模式'
-  if (mode === 'rule') return '本地规则检测'
+  if (mode === 'rule') return llmAssisted ? '本地规则检测 + 单模型复核' : '本地规则检测'
   return '外部检测服务'
 }

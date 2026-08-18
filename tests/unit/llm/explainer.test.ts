@@ -32,6 +32,7 @@ beforeAll(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.stubEnv('CONFIG_DIR', tempDir)
   resetLlmConcurrency()
 })
 
@@ -58,6 +59,18 @@ describe('judgeSegmentsWithLlm', () => {
     expect(await judgeSegmentsWithLlm([segment('s-1', '综上所述，这是结论。')])).toBeNull()
   })
 
+  it('keeps the original model-assistance flow when second review is disabled', async () => {
+    saveLlmConfig({ enabled: true, secondReviewEnabled: false, baseUrl: 'https://api.deepseek.com/v1', apiKey: 'test-key', model: 'deepseek-chat', timeoutMs: 30000, maxSegments: 30 })
+    vi.mocked(llmFetch).mockResolvedValue(({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"segments":[{"id":"s-1","label":"uncertain","confidence":0.6,"evidence":["综上所述，这是结论。"],"reasons":["证据不足"],"suggestions":[]}]}' } }] }),
+    }) as unknown as Response)
+
+    const result = await judgeSegmentsWithLlm([segment('s-1', '综上所述，这是结论。')])
+
+    expect(result?.judgements.get('s-1')?.label).toBe('uncertain')
+  })
+
   it('applies the LLM judgement labels and reasons back to segments', async () => {
     saveLlmConfig({ enabled: true, baseUrl: 'https://api.deepseek.com/v1', apiKey: 'test-key', model: 'deepseek-chat', timeoutMs: 30000, maxSegments: 30 })
     vi.mocked(llmFetch).mockResolvedValue(({
@@ -79,9 +92,28 @@ describe('judgeSegmentsWithLlm', () => {
       segment('s-2', '综上所述，这是结论。'),
     ])
 
-    expect(result?.get('s-1')?.label).toBe('human')
-    expect(result?.get('s-2')?.label).toBe('ai')
-    expect(result?.get('s-2')?.suggestions).toEqual(['改结论'])
+    expect(result?.judgements.get('s-1')?.label).toBe('human')
+    expect(result?.judgements.get('s-2')?.label).toBe('ai')
+    expect(result?.judgements.get('s-2')?.suggestions).toEqual(['改结论'])
+  })
+
+  it('parses JSON after a provider reasoning block', async () => {
+    saveLlmConfig({ enabled: true, baseUrl: 'https://api.opencode.ai/v1', apiKey: 'test-key', model: 'minimax-m3', timeoutMs: 30000, maxSegments: 30 })
+    vi.mocked(llmFetch).mockResolvedValue(({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: '<think>先分析输出格式</think>\n\n```json\n{"segments":[{"id":"s-1","label":"human","confidence":0.8,"evidence":["周三"],"reasons":["具体叙事"],"suggestions":[]}]}' + '\n```',
+          },
+        }],
+      }),
+    }) as unknown as Response)
+
+    const result = await judgeSegmentsWithLlm([segment('s-1', '周三我去图书馆还书。')])
+
+    expect(result?.judgements.get('s-1')?.label).toBe('human')
+    expect(result?.judgements.get('s-1')?.evidence).toEqual(['周三'])
   })
 
   it('sends the configured base URL and model in the request', async () => {
@@ -101,6 +133,57 @@ describe('judgeSegmentsWithLlm', () => {
     expect(init.headers.authorization).toBe('Bearer k')
   })
 
+  it('disables reasoning for all OpencodeGO structured reviews', async () => {
+    saveLlmConfig({ enabled: true, presetId: 'opencodego', baseUrl: 'https://opencode.ai/zen/go/v1', apiKey: 'k', model: 'minimax-m3', timeoutMs: 30000, maxSegments: 30 })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"segments":[{"id":"s-1","label":"uncertain","confidence":0.6,"evidence":["文本"],"reasons":["证据不足"],"suggestions":[]}]}' } }] }),
+    })
+    vi.mocked(llmFetch).mockImplementation(fetchMock)
+
+    await judgeSegmentsWithLlm([segment('s-1', '文本')])
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect(JSON.parse(init.body as string).thinking).toEqual({ type: 'disabled' })
+  })
+
+  it('falls back when a gateway rejects the reasoning option', async () => {
+    saveLlmConfig({ enabled: true, presetId: 'opencodego', baseUrl: 'https://opencode.ai/zen/go/v1', apiKey: 'k', model: 'deepseek-v4-flash', timeoutMs: 30000, maxSegments: 30 })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 400 })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: '{"segments":[{"id":"s-1","label":"uncertain","confidence":0.6,"evidence":["文本"],"reasons":["证据不足"],"suggestions":[]}]}' } }] }),
+      })
+    vi.mocked(llmFetch).mockImplementation(fetchMock)
+
+    const result = await judgeSegmentsWithLlm([segment('s-1', '文本')])
+
+    expect(result?.judgements.size).toBe(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).thinking).toEqual({ type: 'disabled' })
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body as string).thinking).toBeUndefined()
+  })
+
+  it('retries a truncated structured response with a larger budget', async () => {
+    saveLlmConfig({ enabled: true, baseUrl: 'https://api.deepseek.com/v1', apiKey: 'k', model: 'deepseek-chat', timeoutMs: 30000, maxSegments: 30 })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ choices: [{ finish_reason: 'length', message: { content: '<think>分析中' } }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{"segments":[{"id":"s-1","label":"uncertain","confidence":0.6,"evidence":["文本"],"reasons":["证据不足"],"suggestions":[]}]}' } }] }),
+      })
+    vi.mocked(llmFetch).mockImplementation(fetchMock)
+
+    const result = await judgeSegmentsWithLlm([segment('s-1', '文本')])
+
+    expect(result?.judgements.size).toBe(1)
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body as string).max_tokens).toBeGreaterThan(JSON.parse(fetchMock.mock.calls[0][1].body as string).max_tokens)
+  })
+
   it('returns null when the API fails', async () => {
     saveLlmConfig({ enabled: true, baseUrl: 'https://api.deepseek.com/v1', apiKey: 'k', model: 'deepseek-chat', timeoutMs: 30000, maxSegments: 30 })
     vi.mocked(llmFetch).mockRejectedValue(new Error('network down'))
@@ -116,6 +199,30 @@ describe('judgeSegmentsWithLlm', () => {
     }) as unknown as Response)
 
     expect(await judgeSegmentsWithLlm([segment('s-1', '文本')])).toBeNull()
+  })
+
+  it('ignores unknown ids and non-string explanations', async () => {
+    saveLlmConfig({ enabled: true, baseUrl: 'https://api.deepseek.com/v1', apiKey: 'k', model: 'deepseek-chat', timeoutMs: 30000, maxSegments: 30 })
+    vi.mocked(llmFetch).mockResolvedValue(({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: JSON.stringify([
+              { id: 'not-selected', label: 'ai', confidence: 0.9, reasons: ['不应被采用'], suggestions: [] },
+              { id: 's-1', label: 'human', confidence: 0.8, reasons: ['有效理由', 42], suggestions: [null, '有效建议'] },
+            ]),
+          },
+        }],
+      }),
+    }) as unknown as Response)
+
+    const result = await judgeSegmentsWithLlm([segment('s-1', '周三我去图书馆还书。')])
+
+    expect(result?.judgements.size).toBe(1)
+    expect(result?.judgements.get('s-1')?.reasons).toEqual(['有效理由'])
+    expect(result?.judgements.get('s-1')?.suggestions).toEqual(['有效建议'])
+    expect(result?.judgements.get('not-selected')).toBeUndefined()
   })
 
   it('returns null when there are no segments', async () => {

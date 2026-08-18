@@ -44,6 +44,7 @@ beforeAll(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.stubEnv('CONFIG_DIR', tempDir)
 })
 
 afterAll(() => {
@@ -59,7 +60,7 @@ describe('judgeReportWithLlm', () => {
     expect(result).toBe(report)
   })
 
-  it('replaces the judgement for segments when the LLM responds', async () => {
+  it('fuses local and LLM judgements conservatively', async () => {
     saveLlmConfig({ enabled: true, baseUrl: 'https://api.deepseek.com/v1', apiKey: 'k', model: 'deepseek-chat', timeoutMs: 30000, maxSegments: 30 })
     vi.mocked(llmFetch).mockResolvedValue(({
       ok: true,
@@ -67,7 +68,7 @@ describe('judgeReportWithLlm', () => {
         choices: [{
           message: {
             content: JSON.stringify([
-              { id: 's-1', label: 'human', confidence: 0.85, reasons: ['这是具体叙述'], suggestions: [] },
+              { id: 's-1', label: 'human', confidence: 0.85, evidence: ['综上所述，这是结论。'], reasons: ['这是具体叙述'], suggestions: [] },
             ]),
           },
         }],
@@ -76,9 +77,14 @@ describe('judgeReportWithLlm', () => {
 
     const result = await judgeReportWithLlm(report)
 
-    expect(result.segments[0].label).toBe('human')
-    expect(result.segments[0].confidence).toBe(0.85)
-    expect(result.segments[0].reasons).toEqual(['这是具体叙述'])
+    expect(result.segments[0].label).toBe('uncertain')
+    expect(result.segments[0].llmLabel).toBe('human')
+    expect(result.segments[0].confidence).toBe(0.55)
+    expect(result.segments[0].reasons[0]).toContain('两者不一致')
+    expect(result.llmAssisted).toBe(true)
+    expect(result.llmModel).toBe('deepseek-chat')
+    expect(result.llmRequestedSegments).toBe(1)
+    expect(result.llmReviewedSegments).toBe(1)
   })
 
   it('keeps the rule judgement when the LLM call fails', async () => {

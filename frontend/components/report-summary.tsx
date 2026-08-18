@@ -5,6 +5,10 @@ import { RateValue } from './rate-value'
 interface ReportSummaryProps {
   summary: DetectionSummary
   mode: DetectorMode
+  llmAssisted?: boolean
+  llmReviewStatus?: 'disabled' | 'completed' | 'partial' | 'failed'
+  llmRequestedSegments?: number
+  llmReviewedSegments?: number
 }
 
 const modeLabels: Record<DetectorMode, string> = {
@@ -19,7 +23,14 @@ const rateCards = [
   { key: 'uncertainRate', label: '不确定', color: 'mustard' },
 ] as const
 
-export function ReportSummary({ summary, mode }: ReportSummaryProps) {
+export function ReportSummary({
+  summary,
+  mode,
+  llmAssisted = false,
+  llmReviewStatus = 'disabled',
+  llmRequestedSegments = 0,
+  llmReviewedSegments = 0,
+}: ReportSummaryProps) {
   const hasScoredContent = summary.scoredCharacters > 0
 
   return (
@@ -29,7 +40,7 @@ export function ReportSummary({ summary, mode }: ReportSummaryProps) {
           <p className="eyebrow">READING RESULT</p>
           <h2>这篇文字的组成</h2>
         </div>
-        <span className="demo-badge">{modeLabels[mode]}</span>
+        <span className="demo-badge">{modeLabels[mode]}{llmAssisted ? ' + 单模型复核' : ''}</span>
       </div>
       {hasScoredContent ? (
         <>
@@ -45,6 +56,7 @@ export function ReportSummary({ summary, mode }: ReportSummaryProps) {
           <p className="summary-note">
             按有效检测文本的片段覆盖比例统计，共 {summary.scoredCharacters.toLocaleString('zh-CN')} 个有效字符。
             结果是语言线索，不是作者身份的绝对证明。
+            {llmReviewStatus !== 'disabled' ? ` 单模型复核覆盖 ${llmReviewedSegments}/${llmRequestedSegments} 个片段。` : ''}
           </p>
         </>
       ) : (

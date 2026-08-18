@@ -34,6 +34,7 @@
       },
       "nsis": {
         "installerIcon": "icons/icon.ico",
+        "installerHooks": "nsis-hooks.nsh",
         "installMode": "currentUser"
       }
     }

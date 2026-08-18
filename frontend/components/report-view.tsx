@@ -94,7 +94,14 @@ export function ReportView({ taskId }: ReportViewProps) {
         </div>
         <span className="report-stamp">DEMO<br />READING</span>
       </header>
-      <ReportSummary summary={report.summary} mode={report.mode} />
+      <ReportSummary
+        summary={report.summary}
+        mode={report.mode}
+        llmAssisted={report.llmAssisted}
+        llmReviewStatus={report.llmReviewStatus}
+        llmRequestedSegments={report.llmRequestedSegments}
+        llmReviewedSegments={report.llmReviewedSegments}
+      />
       <ExportActions taskId={taskId} />
       {report.warnings.length > 0 ? (
         <div className="report-warning" role="note">

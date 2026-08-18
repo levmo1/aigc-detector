@@ -1,6 +1,9 @@
 import { apiUrl } from '@/frontend/api'
 
-import { useState } from 'react'
+import { isTauri } from '@tauri-apps/api/core'
+import { getCurrentWebview } from '@tauri-apps/api/webview'
+import { readFile } from '@tauri-apps/plugin-fs'
+import { useCallback, useEffect, useState } from 'react'
 
 interface DetectorFormProps {
   onSubmitted: (taskId: string) => void
@@ -22,6 +25,78 @@ export function DetectorForm({ onSubmitted }: DetectorFormProps) {
     setMode(nextMode)
     setError(null)
   }
+
+  const selectDroppedFile = useCallback((dropped: File | undefined) => {
+    if (!dropped) {
+      setError('没有读取到文件，请重新拖入 Word 或 PDF 文件。')
+      return
+    }
+
+    const fileName = dropped.name.toLowerCase()
+    if (!fileName.endsWith('.docx') && !fileName.endsWith('.pdf')) {
+      setFile(null)
+      setError('暂不支持该文件类型，请拖入 .docx 或 .pdf 文件。')
+      return
+    }
+
+    setError(null)
+    setFile(dropped)
+  }, [])
+
+  const selectNativeDroppedFile = useCallback(async (filePath: string) => {
+    try {
+      const bytes = await readFile(filePath)
+      const name = filePath.replaceAll('\\', '/').split('/').pop() || '拖入文件'
+      const lowerName = name.toLowerCase()
+      const type = lowerName.endsWith('.pdf')
+        ? 'application/pdf'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      selectDroppedFile(new File([bytes], name, { type }))
+    } catch {
+      setError('无法读取拖入的文件，请确认文件仍然存在且未被其他程序独占。')
+    }
+  }, [selectDroppedFile])
+
+  useEffect(() => {
+    if (!isTauri() || mode !== 'file') return
+
+    let active = true
+    let unlisten: (() => void) | undefined
+    void getCurrentWebview().onDragDropEvent((event) => {
+      if (!active) return
+
+      if (event.payload.type === 'enter' || event.payload.type === 'over') {
+        setIsDragOver(true)
+        return
+      }
+
+      if (event.payload.type === 'leave') {
+        setIsDragOver(false)
+        return
+      }
+
+      setIsDragOver(false)
+      const filePath = event.payload.paths[0]
+      if (!filePath) {
+        selectDroppedFile(undefined)
+        return
+      }
+      void selectNativeDroppedFile(filePath)
+    }).then((cleanup) => {
+      if (active) {
+        unlisten = cleanup
+      } else {
+        cleanup()
+      }
+    }).catch(() => {
+      // Browser preview and older WebView runtimes may not expose native drag events.
+    })
+
+    return () => {
+      active = false
+      unlisten?.()
+    }
+  }, [mode, selectNativeDroppedFile, selectDroppedFile])
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -104,14 +179,26 @@ export function DetectorForm({ onSubmitted }: DetectorFormProps) {
           htmlFor="paper-file"
           onDragOver={(event) => {
             event.preventDefault()
+            event.stopPropagation()
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
             setIsDragOver(true)
           }}
-          onDragLeave={() => setIsDragOver(false)}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setIsDragOver(false)
+            }
+          }}
           onDrop={(event) => {
             event.preventDefault()
+            event.stopPropagation()
             setIsDragOver(false)
-            const dropped = event.dataTransfer.files?.[0]
-            if (dropped) setFile(dropped)
+            const dataTransfer = event.dataTransfer
+            const dropped = dataTransfer?.files?.[0]
+              ?? Array.from(dataTransfer?.items ?? [])
+                .find((item) => item.kind === 'file')
+                ?.getAsFile()
+              ?? undefined
+            selectDroppedFile(dropped)
           }}
         >
           <input

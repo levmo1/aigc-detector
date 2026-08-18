@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Hono } from 'hono'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import * as llmHttp from '@/lib/llm/http'
 
 const tempDir = mkdtempSync(path.join(tmpdir(), 'aigc-llm-api-'))
 
@@ -28,6 +29,7 @@ describe('llm config API', () => {
 
     expect(response.status).toBe(200)
     expect(body.enabled).toBe(false)
+    expect(body.secondReviewEnabled).toBe(false)
     expect(body.hasApiKey).toBe(false)
     expect(body.presets.some((preset: { id: string }) => preset.id === 'deepseek')).toBe(true)
     expect(body.presets.some((preset: { id: string }) => preset.id === 'opencodego')).toBe(true)
@@ -56,6 +58,26 @@ describe('llm config API', () => {
     expect((await reload.json()).model).toBe('deepseek-chat')
   })
 
+  it('keeps model assistance and second review as separate switches', async () => {
+    const response = await request('/api/llm-config', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        enabled: true,
+        secondReviewEnabled: false,
+        presetId: 'deepseek',
+        baseUrl: 'https://api.deepseek.com',
+        apiKey: 'sk-test',
+        model: 'deepseek-chat',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.enabled).toBe(true)
+    expect(body.secondReviewEnabled).toBe(false)
+  })
+
   it('isolates keys per preset', async () => {
     await request('/api/llm-config', {
       method: 'PUT',
@@ -69,16 +91,17 @@ describe('llm config API', () => {
       }),
     })
 
-    // 切到自定义方案：不应看到 deepseek 的 key
+    // 切到用户方案：不应看到 deepseek 的 key
     const custom = await request('/api/llm-config', {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         enabled: true,
-        presetId: 'custom',
+        presetId: 'custom-gateway',
         baseUrl: 'https://example.com/v1',
         apiKey: '',
         model: 'my-model',
+        customPresets: [{ id: 'custom-gateway', name: '自定义网关', baseUrl: 'https://example.com/v1' }],
       }),
     })
     const customBody = await custom.json()
@@ -147,5 +170,66 @@ describe('llm config API', () => {
 
     expect(response.status).toBe(200)
     expect(body.hasApiKey).toBe(false)
+  })
+
+  it('adds a custom preset and preserves it when saving the main config', async () => {
+    const created = await request('/api/llm-config/presets', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: '公司网关', baseUrl: 'https://gateway.example.com/v1' }),
+    })
+    const createdBody = await created.json()
+    const custom = createdBody.presets.find((preset: { id: string; name: string }) => preset.name === '公司网关')
+
+    expect(created.status).toBe(201)
+    expect(custom).toMatchObject({ name: '公司网关', baseUrl: 'https://gateway.example.com/v1' })
+
+    const saved = await request('/api/llm-config', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        enabled: false,
+        presetId: 'deepseek',
+        baseUrl: 'https://api.deepseek.com',
+        apiKey: '',
+        model: 'deepseek-chat',
+      }),
+    })
+    const savedBody = await saved.json()
+
+    expect(saved.status).toBe(200)
+    expect(savedBody.presets.some((preset: { id: string }) => preset.id === custom.id)).toBe(true)
+
+    const deleted = await request(`/api/llm-config/presets/${custom.id}`, { method: 'DELETE' })
+    const deletedBody = await deleted.json()
+    expect(deleted.status).toBe(200)
+    expect(deletedBody.presetId).toBe('deepseek')
+    expect(deletedBody.presets.some((preset: { id: string }) => preset.id === custom.id)).toBe(false)
+  })
+
+  it('discovers models from an OpenAI-compatible models endpoint', async () => {
+    const fetchMock = vi.spyOn(llmHttp, 'llmFetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: 'model-a' }, { id: 'model-b', name: 'Model B' }] }),
+    } as unknown as Response)
+
+    const response = await request('/api/llm-config/models', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        presetId: 'custom-company',
+        baseUrl: 'https://gateway.example.com/v1',
+        apiKey: 'test-key',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.models).toEqual([
+      { id: 'model-a', name: 'model-a' },
+      { id: 'model-b', name: 'Model B' },
+    ])
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe('https://gateway.example.com/v1/models')
   })
 })

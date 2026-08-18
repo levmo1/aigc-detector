@@ -24,7 +24,11 @@ export function createRuleDetector(): DetectorProvider {
 
       detected.forEach((segment, index) => {
         const evaluation = evaluations[index]
-        segment.reasons = evaluation.score > 0 ? explainHits(evaluation) : [explainNoHits()]
+        const reasons = evaluation.score > 0 ? explainHits(evaluation) : [explainNoHits()]
+        if (segment.label === 'ai' && evaluation.ruleGroupCount < engine.thresholds.minimumAIRuleGroups) {
+          reasons.push('全文多个片段重复出现模板化、排比或高频表达，综合线索后达到 AI 倾向阈值')
+        }
+        segment.reasons = [...new Set(reasons)]
         segment.suggestions = buildSuggestions(evaluation)
       })
 

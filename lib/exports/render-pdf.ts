@@ -51,7 +51,7 @@ function buildDocDefinition(report: DetectionReport): TDocumentDefinitions {
     { text: 'CHINESE TEXT LAB / READING REPORT', style: 'eyebrow' },
     { text: report.sourceName, style: 'title' },
     { text: `生成时间：${report.generatedAt} · 有效字符：${report.summary.scoredCharacters.toLocaleString('zh-CN')}`, style: 'meta' },
-    { text: modeLabel(report.mode), style: 'badge' },
+    { text: modeLabel(report.mode, report.llmAssisted), style: 'badge' },
     { text: '' },
     {
       columns: [
@@ -122,7 +122,7 @@ function scoredInsights(report: DetectionReport): Content[] {
       margin: [0, 6, 0, 0],
       color: colors[segment.label],
       text: [
-        { text: `${labels[segment.label]} · ${Math.round(segment.confidence * 100)}%\n`, bold: true },
+        { text: `${labels[segment.label]} · 特征强度 ${Math.round(segment.confidence * 100)}%\n`, bold: true },
         { text: `片段：${segment.text}\n` },
         { text: `语言特征：${segment.reasons.join('；')}\n` },
         { text: `修改方向：${segment.suggestions.join('；')}` },

@@ -11,4 +11,10 @@ describe('ReportSummary', () => {
     await waitFor(() => expect(screen.getByText('20%')).toBeInTheDocument(), { timeout: 2000 })
     expect(screen.getByText('Mock 演示模式')).toBeInTheDocument()
   })
+
+  it('shows when the report received an LLM review', () => {
+    render(<ReportSummary summary={{ aiRate: 42, humanRate: 38, uncertainRate: 20, scoredCharacters: 1200 }} mode="rule" llmAssisted />)
+
+    expect(screen.getByText('本地规则检测 + 单模型复核')).toBeInTheDocument()
+  })
 })

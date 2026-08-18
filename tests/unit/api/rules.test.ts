@@ -91,4 +91,37 @@ describe('rules API', () => {
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toMatchObject({ error: { code: 'INVALID_RULES' } })
   })
+
+  it('persists thresholds, exports the library, and rolls back the previous save', async () => {
+    const first = await request('/api/rules', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        groups: [{ id: 'version-one', name: '版本一', weight: 1, rules: [{ pattern: '版本一', weight: 1 }] }],
+        thresholds: { segmentAIScore: 5, segmentUncertainScore: 2, minimumAIRuleGroups: 2 },
+      }),
+    })
+    expect(first.status).toBe(200)
+
+    const second = await request('/api/rules', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        groups: [{ id: 'version-two', name: '版本二', weight: 1, rules: [{ pattern: '版本二', weight: 1 }] }],
+        thresholds: { segmentAIScore: 6, segmentUncertainScore: 2, minimumAIRuleGroups: 3 },
+      }),
+    })
+    expect(second.status).toBe(200)
+    expect((await second.json()).thresholds.segmentAIScore).toBe(6)
+
+    const exported = await request('/api/rules/export')
+    expect(exported.status).toBe(200)
+    expect((await exported.json()).groups.some((group: { id: string }) => group.id === 'version-two')).toBe(true)
+
+    const rollback = await request('/api/rules/rollback', { method: 'POST' })
+    const rollbackBody = await rollback.json()
+    expect(rollback.status).toBe(200)
+    expect(rollbackBody.groups.some((group: { id: string }) => group.id === 'version-one')).toBe(true)
+    expect(rollbackBody.thresholds.segmentAIScore).toBe(5)
+  })
 })

@@ -105,6 +105,24 @@ fs.cpSync(
 console.log('[build-server] prune tesseract.js-core to Node-22 variants')
 pruneTesseractCore(path.join(OUT, 'node_modules', 'tesseract.js-core'))
 
+console.log('[build-server] remove production-unneeded runtime files')
+for (const rel of [
+  // OCR always passes the best_int language path explicitly in lib/documents/ocr.ts.
+  'node_modules/@tesseract.js-data/chi_sim/4.0.0',
+  // The Node PDF parser imports legacy/build directly; the browser viewer is unused.
+  'node_modules/pdfjs-dist/legacy/web',
+  // pdfkit's package-manager metadata is not needed at runtime.
+  'node_modules/pdfkit/.yarn',
+  // Tesseract runtime does not load documentation, examples, or build scripts.
+  'node_modules/tesseract.js/docs',
+  'node_modules/tesseract.js/examples',
+  'node_modules/tesseract.js/scripts',
+]) {
+  fs.rmSync(path.join(OUT, rel), { recursive: true, force: true })
+}
+
+removeFilesByExtension(OUT, '.map')
+
 function pruneTesseractCore(coreDir) {
   if (!fs.existsSync(coreDir)) return
   // Node 22 x64 支持 relaxed SIMD，getCore 优先用 relaxedsimd-lstm；
@@ -130,5 +148,17 @@ function pruneTesseractCore(coreDir) {
     const p = path.join(coreDir, name)
     fs.rmSync(p, { recursive: true, force: true })
     console.log(`[build-server] pruned ${name}`)
+  }
+}
+
+function removeFilesByExtension(directory, extension) {
+  if (!fs.existsSync(directory)) return
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name)
+    if (entry.isDirectory()) {
+      removeFilesByExtension(entryPath, extension)
+    } else if (entry.name.endsWith(extension)) {
+      fs.rmSync(entryPath, { force: true })
+    }
   }
 }
