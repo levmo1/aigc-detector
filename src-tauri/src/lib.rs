@@ -1,3 +1,5 @@
+mod startup;
+
 use std::fs;
 use std::io::Write;
 use std::sync::Mutex;
@@ -222,36 +224,46 @@ pub fn run() {
 
             // 等待后端就绪（AIGC-SERVER-READY）再显示主窗口；失败弹出错误对话框
             tauri::async_runtime::spawn(async move {
-                let mut ready = false;
-                while let Some(event) = rx.recv().await {
-                    match event {
-                        CommandEvent::Stdout(line) => {
-                            if let Ok(text) = String::from_utf8(line) {
-                                if text.contains("AIGC-SERVER-READY") {
-                                    ready = true;
-                                    break;
+                let ready = startup::wait_for_startup(async {
+                    let mut ready = false;
+                    while let Some(event) = rx.recv().await {
+                        match event {
+                            CommandEvent::Stdout(line) => {
+                                if let Ok(text) = String::from_utf8(line) {
+                                    if text.contains("AIGC-SERVER-READY") {
+                                        ready = true;
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                        CommandEvent::Stderr(line) => {
-                            if let Ok(text) = String::from_utf8(line) {
-                                write_startup_log(&log_dir, &text);
+                            CommandEvent::Stderr(line) => {
+                                if let Ok(text) = String::from_utf8(line) {
+                                    write_startup_log(&log_dir, &text);
+                                }
                             }
+                            CommandEvent::Terminated(payload) => {
+                                write_startup_log(
+                                    &log_dir,
+                                    &format!("node sidecar terminated: {payload:?}"),
+                                );
+                                break;
+                            }
+                            _ => {}
                         }
-                        CommandEvent::Terminated(payload) => {
-                            write_startup_log(
-                                &log_dir,
-                                &format!("node sidecar terminated: {payload:?}"),
-                            );
-                            break;
-                        }
-                        _ => {}
                     }
-                }
+                    ready
+                }, std::time::Duration::from_secs(30)).await;
                 if ready {
                     let _ = create_main_window(&app_handle, &api_base);
                 } else {
-                    show_startup_error(&app_handle, "后端服务未能在超时时间内启动。");
+                    {
+                        let state = app_handle.state::<SidecarState>();
+                        if let Some(child) = state.0.lock().unwrap().take() {
+                            let _ = child.kill();
+                        };
+                    }
+                    write_startup_log(&log_dir, "backend startup failed or exceeded 30 seconds");
+                    show_startup_error(&app_handle, "后端服务未能在 30 秒内启动，请退出后重试。");
                 }
             });
 

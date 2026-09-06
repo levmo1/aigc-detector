@@ -183,6 +183,10 @@ export function saveLlmConfig(config: LlmConfig, options: { resetApiKey?: boolea
   }
 
   const apiKeys: Record<string, string> = { ...(existing.apiKeys ?? {}) }
+  const legacyPresetId = existing.presetId ?? ''
+  if (existing.apiKey && !apiKeys[legacyPresetId]) {
+    apiKeys[legacyPresetId] = existing.apiKey
+  }
   if (options.resetApiKey) {
     delete apiKeys[presetId]
   } else if (parsed.apiKey) {

@@ -88,8 +88,8 @@ export function updateTask(id: string, patch: Partial<Omit<DetectionTask, 'id' |
 }
 
 export function deleteTask(id: string): void {
-  tasks.delete(id)
   deleteTaskFromDisk(id)
+  tasks.delete(id)
 }
 
 export function listFinishedTasks(): DetectionTask[] {

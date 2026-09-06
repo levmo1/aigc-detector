@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
 import { AppError, errorResponse } from '@/lib/errors'
 import { loadHistoryConfig, historyConfigSchema, saveHistoryConfig } from '@/lib/history/config'
-import { listFinishedTasks, pruneHistory, deleteTask } from '@/lib/tasks/store'
+import { validateTaskId } from '@/lib/tasks/persist'
+import { listFinishedTasks, pruneHistory, deleteTask, getTask } from '@/lib/tasks/store'
 import { createRateLimiter } from '@/lib/tasks/rate-limit'
 import { readRequestWithinLimit } from '@/lib/validation/input'
 
@@ -59,7 +60,14 @@ historyRoutes.put('/', async (c) => {
 
 historyRoutes.delete('/:id', async (c) => {
   try {
-    deleteTask(c.req.param('id'))
+    const id = c.req.param('id')
+    validateTaskId(id)
+    const task = getTask(id)
+    if (!task) throw new AppError('TASK_NOT_FOUND', '检测任务不存在或已过期。', 404)
+    if (task.status !== 'ready' && task.status !== 'error') {
+      throw new AppError('TASK_NOT_READY', '检测仍在进行中，暂时无法删除。', 409)
+    }
+    deleteTask(id)
 
     return c.json({ ok: true })
   } catch (error) {

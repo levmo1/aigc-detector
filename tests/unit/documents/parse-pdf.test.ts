@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parsePdf, joinPdfItems, type PdfDocumentLike } from '@/lib/documents/parse-pdf'
-import { AppError } from '@/lib/errors'
 
 describe('joinPdfItems', () => {
   it('preserves line breaks marked by hasEOL', () => {
@@ -55,7 +54,7 @@ describe('parsePdf', () => {
   })
 
   it('recognizes only the pages without a text layer', async () => {
-    const fullText = '这一页有完整的文本层。'.repeat(3)
+    const fullText = '这一页有完整的文本层。'.repeat(30)
     const document: PdfDocumentLike = {
       numPages: 3,
       getPage: async (pageNumber) => (
@@ -145,3 +144,15 @@ function makeMinimalPdf(): Buffer {
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefPosition}\n%%EOF\n`
   return Buffer.from(pdf, 'ascii')
 }
+
+it('keeps sparse text and warns when OCR misses a page in a mixed PDF', async () => {
+  const document: PdfDocumentLike = {
+    numPages: 2,
+    getPage: async (page) => pageWithText(page === 1 ? '正文内容。'.repeat(40) : '图表说明'),
+  }
+  const parsed = await parsePdf(Buffer.from('mixed'), {
+    loadDocument: async () => loadAs(document), ocrPages: async () => [''],
+  })
+  expect(parsed.text).toContain('图表说明')
+  expect(parsed.warnings.join('')).toContain('第 2 页 OCR 未识别到文字')
+})

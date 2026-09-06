@@ -26,6 +26,7 @@ export function HistoryView() {
   const [maxCount, setMaxCount] = useState(50)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
 
   const loadHistory = useCallback(async () => {
     const response = await fetch(apiUrl('/api/history'))
@@ -74,11 +75,20 @@ export function HistoryView() {
   }
 
   const removeItem = async (item: HistoryItem) => {
+    if (deletingIds.has(item.id)) return
+    setError(null)
+    setDeletingIds((current) => new Set(current).add(item.id))
     try {
-      await fetch(apiUrl(`/api/history/${item.id}`), { method: 'DELETE' })
+      const response = await fetch(apiUrl(`/api/history/${item.id}`), { method: 'DELETE' })
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { error?: { message?: string } } | null
+        throw new Error(body?.error?.message ?? '删除失败。')
+      }
       setItems((current) => current.filter((entry) => entry.id !== item.id))
-    } catch {
-      setError('删除失败。')
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : '删除失败。')
+    } finally {
+      setDeletingIds((current) => { const next = new Set(current); next.delete(item.id); return next })
     }
   }
 
@@ -139,6 +149,7 @@ export function HistoryView() {
                 ) : null}
                 <button
                   className="history-remove"
+                  disabled={deletingIds.has(item.id)}
                   type="button"
                   aria-label={`删除 ${item.sourceName}`}
                   onClick={() => void removeItem(item)}
