@@ -1,6 +1,6 @@
 [package]
 name = "aigc-detector"
-version = "0.1.0"
+version = "0.1.1"
 description = "中文论文 AIGC 检测"
 edition = "2021"
 

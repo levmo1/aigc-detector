@@ -42,7 +42,7 @@ esbuild.buildSync({
 console.log('[build-server] write backend package.json')
 fs.writeFileSync(
   path.join(OUT, 'package.json'),
-  `${JSON.stringify({ name: 'aigc-server', private: true, version: '0.1.0', dependencies: BACKEND_DEPS }, null, 2)}\n`,
+  `${JSON.stringify({ name: 'aigc-server', private: true, version: require(path.join(ROOT, 'package.json')).version, dependencies: BACKEND_DEPS }, null, 2)}\n`,
   'utf8',
 )
 
