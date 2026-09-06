@@ -41,3 +41,13 @@ describe('task store', () => {
     expect(getTask(task.id)?.input).toBeUndefined()
   })
 })
+
+it('does not forget a task when deleting its disk record fails', async () => {
+  const persist = await import('@/lib/tasks/persist')
+  const task = createTask({ kind: 'text', text: '正文', sourceName: '测试', warnings: [] })
+  const deletion = vi.spyOn(persist, 'deleteTaskFromDisk').mockImplementation(() => { throw new Error('fixture disk failure') })
+  try {
+    expect(() => deleteTask(task.id)).toThrow('fixture disk failure')
+    expect(getTask(task.id)).toBeDefined()
+  } finally { deletion.mockRestore(); deleteTask(task.id) }
+})

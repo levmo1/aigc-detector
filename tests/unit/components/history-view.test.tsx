@@ -31,7 +31,6 @@ const historyResponse = {
   ],
 }
 
-const itemByPath = (id: string) => historyResponse.items.find((item) => item.id === id)!
 
 describe('HistoryView', () => {
   it('lists past detections with summary and source names', async () => {
@@ -42,7 +41,6 @@ describe('HistoryView', () => {
     await waitFor(() => expect(screen.getByText('人工智能在医疗领域的应用研究.pdf')).toBeInTheDocument())
     expect(screen.getByText(/AI 11%/)).toBeInTheDocument()
     expect(screen.getByText('PDF 中没有识别到可检测的文字。')).toBeInTheDocument()
-    console.log('LIST HTML:', document.querySelector('.history-list')?.innerHTML.slice(0, 800))
   })
 
   it('updates the max count via PUT', async () => {
@@ -90,4 +88,16 @@ describe('HistoryView', () => {
     await waitFor(() => expect(screen.getByText('人工智能在医疗领域的应用研究.pdf')).toBeInTheDocument())
     expect(screen.getByRole('link', { name: /查看报告/ })).toHaveAttribute('href', '/report/det_1')
   })
+})
+
+it('keeps an entry visible when the server rejects deletion', async () => {
+  vi.stubGlobal('fetch', vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => historyResponse })
+    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: { message: '磁盘写入失败' } }) }))
+  render(<HistoryView />)
+  const button = await screen.findByRole('button', { name: '删除 人工智能在医疗领域的应用研究.pdf' })
+  await userEvent.setup().click(button)
+  expect(await screen.findByRole('alert')).toHaveTextContent('磁盘写入失败')
+  expect(screen.getByText('人工智能在医疗领域的应用研究.pdf')).toBeInTheDocument()
+  expect(button).toBeEnabled()
 })

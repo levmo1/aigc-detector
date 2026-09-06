@@ -9,14 +9,14 @@ test('pastes text, reaches the report, filters markup, and downloads HTML', asyn
   await page.getByRole('button', { name: '开始检测' }).click()
 
   await expect(page).toHaveURL(/\/report\/det_/u)
-  await expect(page.getByText('本地规则检测')).toBeVisible()
+  await expect(page.getByRole('region', { name: '检测结果摘要' }).getByText('本地规则检测')).toBeVisible()
   await expect(page.getByText('AI 倾向', { exact: true }).first()).toBeVisible()
 
   await page.getByRole('tab', { name: 'AI 倾向' }).click()
   await expect(page.locator('.text-mark-ai').first()).toBeVisible()
 
   const downloadPromise = page.waitForEvent('download')
-  await page.getByRole('link', { name: /HTML/ }).click()
+  await page.getByRole('button', { name: /HTML/ }).click()
   const download = await downloadPromise
   expect(download.suggestedFilename()).toMatch(/检测报告\.html$/u)
 })

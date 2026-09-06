@@ -10,7 +10,7 @@ export default defineConfig({
     // dev 模式下把 /api 代理到本地后端（npm run dev:server 启动）
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:3210',
+        target: process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:3210',
         changeOrigin: true,
       },
     },

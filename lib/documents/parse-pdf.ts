@@ -86,10 +86,10 @@ export async function parsePdf(buffer: Buffer, options: PdfParserOptions = {}): 
     const threshold = options.textThreshold ?? 100
     const extractedCharacters = countInputCharacters(extractedText)
 
-    if (extractedCharacters >= threshold) {
-      if (extractedCharacters > limits.maxDocumentCharacters) {
-        throw new AppError('TEXT_TOO_LONG', `正文超过 ${limits.maxDocumentCharacters} 字的限制。`)
-      }
+    if (extractedCharacters > limits.maxDocumentCharacters) {
+      throw new AppError('TEXT_TOO_LONG', `正文超过 ${limits.maxDocumentCharacters} 字的限制。`)
+    }
+    if (extractedCharacters >= threshold && emptyPageNumbers.length === 0) {
       return {
         sourceType: 'pdf',
         text: extractedText,
@@ -102,6 +102,7 @@ export async function parsePdf(buffer: Buffer, options: PdfParserOptions = {}): 
 
     let finalPages: string[]
     let warning: string
+    const incompletePages: number[] = []
 
     if (emptyPageNumbers.length === 0) {
       const ocrTexts = await (options.ocrPages ?? ocrPdfPages)(document)
@@ -112,7 +113,9 @@ export async function parsePdf(buffer: Buffer, options: PdfParserOptions = {}): 
       let ocrIndex = 0
       finalPages = perPageExtracted.map((pageText, index) => {
         if (emptyPageNumbers.includes(index + 1)) {
-          return normalizeText(ocrTexts[ocrIndex++] ?? '')
+          const recognized = normalizeText(ocrTexts[ocrIndex++] ?? '')
+          if (!recognized) incompletePages.push(index + 1)
+          return recognized || pageText
         }
         return pageText
       })
@@ -135,7 +138,7 @@ export async function parsePdf(buffer: Buffer, options: PdfParserOptions = {}): 
       segments: splitIntoSegments(ocrText),
       pageCount: document.numPages,
       usedOcr: true,
-      warnings: [warning],
+      warnings: [warning, ...(incompletePages.length ? [`第 ${incompletePages.join('、')} 页 OCR 未识别到文字，请核对原文是否完整。`] : [])],
     }
   } finally {
     await loaded.destroy()

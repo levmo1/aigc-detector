@@ -17,7 +17,7 @@ describe('DetectorForm', () => {
     await user.click(screen.getByRole('button', { name: '开始检测' }))
 
     await waitFor(() => expect(onSubmitted).toHaveBeenCalledWith('det_demo'))
-    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:3210/api/detections', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/detections', expect.objectContaining({ method: 'POST' }))
   })
 
   it('shows the selected file before submitting', async () => {

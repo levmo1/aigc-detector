@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Hono } from 'hono'
@@ -117,4 +117,22 @@ describe('history API', () => {
     expect(body.maxCount).toBe(1)
     expect(body.items.length).toBe(1)
   })
+})
+
+it('rejects encoded traversal without deleting files outside tasks', async () => {
+  const directory = process.env.DATA_DIR!
+  mkdirSync(path.join(directory, 'tasks'), { recursive: true })
+  const victim = path.join(directory, 'fixture.json')
+  writeFileSync(victim, '{}')
+  const response = await request('/api/history/..%2Ffixture', { method: 'DELETE' })
+  expect(response.status).toBe(400)
+  expect(existsSync(victim)).toBe(true)
+})
+
+it('rejects deletion of unknown and active tasks', async () => {
+  expect((await request('/api/history/det_missing', { method: 'DELETE' })).status).toBe(404)
+  const { createTask, getTask } = await import('@/lib/tasks/store')
+  const task = createTask({ kind: 'text', text: '正文', sourceName: '测试', warnings: [] })
+  expect((await request(`/api/history/${task.id}`, { method: 'DELETE' })).status).toBe(409)
+  expect(getTask(task.id)).toBeDefined()
 })
